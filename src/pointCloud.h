@@ -1,6 +1,7 @@
 #ifndef POINTCLOUD_H
 #define POINTCLOUD_H
 
+#include "common.h"
 #include "nodePath.h"
 #include "texture.h"
 #include "opencv2/opencv.hpp"
@@ -10,27 +11,25 @@ using namespace cv;
 
 class PointCloud {
 public:
-	PointCloud(const NodePath &scene);
-	~PointCloud();
+  PointCloud(const NodePath &scene);
+  ~PointCloud();
 
-	static NodePath createPointCloud(int width, int height);
-	void createCloud();
+  static NodePath createPointCloud(int width, int height);
+  void createCloud();
 
-	void configureTexture();
-	void updateColor(void* data);
-	void updateDepth(void* data);
+  void configureTexture();
+  void updateColor(void* data);
+  void updateDepth(void* data);
 
-	void updateCameraMatrix(Mat m, bool invert = false);
+  void updateCameraMatrix(Mat m, bool invert = false);
 
+  NodePath cloud;
+  NodePath camera;
 
-	NodePath cloud;
-	NodePath camera;
+  PT(Texture) color;
+  PT(Texture) depth;
 
-	PT(Texture) color;
-	PT(Texture) depth;
-
-	int width, height;
+  int width, height;
 };
-
 
 #endif /* POINTCLOUD_H */

@@ -1,3 +1,4 @@
+#include "common.h"
 #include "iostream"
 #include "OpenNI.h"
 #include "opencv2/opencv.hpp"
@@ -7,21 +8,20 @@ using namespace std;
 using namespace openni;
 using namespace cv;
 
+void showChessboard(Mat& image) {
+  // Output vectors of image points
+  std::vector<cv::Point2f> imageCorners;
 
-void showChessboard(Mat& image){
-    // Output vectors of image points
-    std::vector<cv::Point2f> imageCorners;
+  // Number of corners on the chessboard
+  cv::Size boardSize(9, 6);
 
-    // Number of corners on the chessboard
-    cv::Size boardSize(9, 6);
+  // Get the chessboard corners
+  bool found = cv::findChessboardCorners(image, boardSize, imageCorners, 2 & 4);
 
-    // Get the chessboard corners
-    bool found = cv::findChessboardCorners(image, boardSize, imageCorners, 2 & 4);
+  // Draw the corners
+  cv::drawChessboardCorners(image, boardSize, imageCorners, found);
 
-    // Draw the corners
-    cv::drawChessboardCorners(image, boardSize, imageCorners, found);
-
-    const char* chessboardstr = "chessboard";
-    namedWindow(chessboardstr);
-    imshow(chessboardstr, image);
+  const char* chessboardstr = "chessboard";
+  namedWindow(chessboardstr);
+  imshow(chessboardstr, image);
 }
