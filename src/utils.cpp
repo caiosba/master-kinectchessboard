@@ -1,12 +1,5 @@
-/*
- * utils.cpp
- * Created on: Apr 10, 2013
- * Author: heekinho
- */
-
 #include "iostream"
 #include "OpenNI.h"
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 

@@ -1,12 +1,4 @@
-/*
- * pointCloud.cpp
- * Created on: Apr 10, 2013
- * Author: heekinho
- */
-
-
 #include "pointCloud.h"
-
 #include "geomVertexWriter.h"
 #include "geomVertexData.h"
 #include "geomTriangles.h"
@@ -14,7 +6,6 @@
 #include "geomNode.h"
 #include "shaderPool.h"
 #include "pnmImage.h"
-
 
 PointCloud::PointCloud(const NodePath &scene){
 	width = 640;

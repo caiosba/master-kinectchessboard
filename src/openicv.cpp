@@ -1,27 +1,16 @@
-/**
- * openicv.cpp
- * Author: heekinho
- * Date: 11/03/2013
- */
-
-
-
 #include "iostream"
 #include "OpenNI.h"
-
+#include "pointCloud.h"
+#include "pandaViewer.h"
+#include "customDevice.h"
 #include "opencv2/opencv.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-#include "pandaViewer.h"
+int numframe = 0;
 
 using namespace std;
 using namespace openni;
 using namespace cv;
-
-int numframe = 0;
-
-#include "customDevice.h"
-#include "pointCloud.h"
 
 vector<CustomDevice*> devices;
 

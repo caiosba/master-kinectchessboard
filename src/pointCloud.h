@@ -1,15 +1,8 @@
-/*
- * pointCloud.h
- * Created on: Apr 10, 2013
- * Author: heekinho
- */
-
 #ifndef POINTCLOUD_H
 #define POINTCLOUD_H
 
 #include "nodePath.h"
 #include "texture.h"
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core.hpp"
 

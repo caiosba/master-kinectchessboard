@@ -5,11 +5,9 @@
  *  Author: heekinho
  */
 
-#include "pandaViewer.h"
-
+#include "texture.h"
 #include "pandaFramework.h"
 #include "load_prc_file.h"
-#include "texture.h"
 #include "pta_uchar.h"
 #include "pta_ushort.h"
 #include "cardMaker.h"
@@ -21,6 +19,7 @@
 #include "pnmImage.h"
 #include "transparencyAttrib.h"
 #include "omniBoundingVolume.h"
+#include "pandaViewer.h"
 #include "pointCloud.h"
 
 PandaFramework* pframework;
