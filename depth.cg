@@ -1,0 +1,63 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+
+/* Será passado via shader. Específico para cada kinect */
+float resX = 640;
+float resY = 480;
+float fovH = 1.02102;
+float fovV = 0.79587;
+float xzFactor = 1.12005;
+float yzFactor = 0.840723;
+
+/**
+ * Converts the position to world position.
+ */
+float3 getWorldPos(in float3 pos){
+	float normX = pos.x / resX - 0.5f;
+	float normY = 0.5f - pos.y / resY;
+	
+	float3 pworld;
+	pworld.x = normX * pos.z * xzFactor;
+	pworld.y = normY * pos.z * yzFactor;
+	pworld.z = pos.z;
+	
+	return pworld * 0.001;
+}
+
+/**
+ * Vertex Shader.
+ * Pega o valor de depth da textura, transforma para world space (3D), 
+ * deslocando os vértices de acordo.
+ */
+float4 vshader(
+	in float4 vtx_position : POSITION,		/* Posição do vértice em model space */
+	in uniform float4x4 mat_modelproj,      /* Matriz de transformação de model para clip space (direto) */
+    in uniform sampler2D tex_0 : TEXUNIT0,  /* Depth */
+    in uniform sampler2D tex_1 : TEXUNIT1,  /* RGB */
+    out float4 l_vtx_color : TEXCOORD1      /* Cor final do vértice para o Fragment Shader */ 
+) : POSITION 
+{
+    /* Faz a consulta do pixel correspondente ao vértice atual no mapa de profundidade */
+	float depthValue = tex2D(tex_0, vtx_position.xy / float2(resX, -resY)).r * 65535;
+	
+	/* Consulta a cor do pixel no mapa RGB */
+	l_vtx_color = float4(tex2D(tex_1, vtx_position.xy / float2(resX, -resY)).rgb, 1.0f);
+	
+	/* Transforma a posição para world space (que na verdade é model*) */
+	float4 world_pos = float4(getWorldPos(float3(vtx_position.x, vtx_position.y, depthValue)), 1);
+		
+	/* Retorna a posição em clip space para o fragment shader */
+	return mul(mat_modelproj, float4(world_pos.xyz, 1));
+}
+
+    
+
+void fshader(    in float4 l_vtx_position : TEXCOORD0, 
+		         in float4 l_vtx_color : TEXCOORD1, 
+      			 in uniform sampler2D tex_1 : TEXUNIT1,
+      			 out float4 o_color : COLOR)
+{
+	o_color = l_vtx_color;
+	//o_color = float4(tex2D(tex_1, l_vtx_position.xy / float2(resX, -resY)).rgb, 1.0f);
+//	if(l_vtx_position.z < 1.0f) o_color.a = 0.0f;
+}
