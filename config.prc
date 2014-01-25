@@ -21,3 +21,5 @@ win-size 800 600
 
 #dump-generated-shaders 1
 notify-level warning
+
+framebuffer-alpha #f
