@@ -1,3 +1,10 @@
 #!/bin/bash
-# If don't need to preload OpenCV 2.4 shared objects, you can simply execute it by running ./opencv2-openni
-LD_PRELOAD=/usr/local/lib/libopencv_core.so.2.4:/usr/local/lib/libopencv_flann.so.2.4:/usr/local/lib/libopencv_highgui.so.2.4:/usr/local/lib/libopencv_imgproc.so.2.4:/usr/local/lib/libopencv_gpu.so.2.4:/usr/local/lib/libopencv_calib3d.so.2.4:/usr/lib/libcv2.so ./opencv2-openni
+OPENNI2DIR=/home/caiosba/Mestrado/OpenNI2
+wd="$OPENNI2DIR/Bin/x86-Release"
+make clean
+make
+rm -f "$wd/depth.cg" 2>/dev/null
+rm -f "$wd/config.prc" 2>/dev/null
+cp depth.cg config.prc $wd
+cd $wd
+LD_PRELOAD=/usr/local/lib/libopencv_core.so.2.4:/usr/local/lib/libopencv_flann.so.2.4:/usr/local/lib/libopencv_highgui.so.2.4:/usr/local/lib/libopencv_imgproc.so.2.4:/usr/local/lib/libopencv_gpu.so.2.4:/usr/local/lib/libopencv_calib3d.so.2.4:/usr/lib/libcv2.so:/usr/local/lib/panda3d/libp3framework.so.1.8:/usr/local/lib/panda3d/libpanda.so.1.8:/usr/local/lib/panda3d/libpandaexpress.so.1.8:/usr/local/lib/panda3d/libpandafx.so ./opencv2-openni

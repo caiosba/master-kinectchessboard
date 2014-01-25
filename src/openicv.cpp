@@ -149,6 +149,10 @@ Status initOpenNI() {
   OpenNI::enumerateDevices(&devicesInfo);
 
   if (DEBUG) cout << devicesInfo.getSize() << " Kinect(s) found" << endl;
+  if (devicesInfo.getSize() == 0) {
+    if (DEBUG) cout << "Fatal: No Kinect found!" << endl;
+    exit;
+  }
 
   for (int i = 0; i < devicesInfo.getSize(); i++) {
     devices.push_back(new CustomDevice(devicesInfo[i], i));
@@ -176,7 +180,7 @@ int main(int argc, char** argv) {
 
   // Initialize OpenNI
   Status rc = initOpenNI();
-  if(rc != STATUS_OK){
+  if (rc != STATUS_OK) {
     if (DEBUG) cout << "Error while loading OpenNI. Exiting..." << endl;
     return 1;
   }
