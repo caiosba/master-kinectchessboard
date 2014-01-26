@@ -162,12 +162,12 @@ Status initOpenNI() {
   while (true) {
     //FIXME cout << "Main Thread Rodando" << endl;
     //FIXME devices[0]->mainLoop();
-    devices[0]->readFrame();
-    trackCameraPosition(9, 6, devices[0]);
-
     //FIXME devices[1]->mainLoop();
-    devices[1]->readFrame();
-    trackCameraPosition(9, 6, devices[1]);
+    
+    for (int i = 0; i < devicesInfo.getSize(); i++) {
+      devices[i]->readFrame();
+      trackCameraPosition(9, 6, devices[i]);
+    }
   }
   return rc;
 }
