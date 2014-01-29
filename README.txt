@@ -24,3 +24,9 @@ being correctly linked by running `ldd libOpenNI2.so`. You may need to do the fo
 * `cp path/to/OpenNI2-FreenectDriver/build/libFreenect.so Samples/Bin/OpenNI2/Drivers`
 * `cp path/to/OpenNI2-FreenectDriver/build/libFreenect.so Redist/OpenNI2/Drivers`
 * Set the path to this directory on "run" and "Makefile"
+
+References:
+
+* https://github.com/piedar/OpenNI2-FreenectDriver/issues/23
+* https://github.com/piedar/OpenNI2-FreenectDriver/tree/master
+* http://www.openni.org/openni-sdk/
