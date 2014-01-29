@@ -1,7 +1,3 @@
-# Set the path to OpenNI2 directory here... it should contain the OpenNI2-Freenect driver as per
-# https://github.com/OpenKinect/libfreenect/tree/master/OpenNI2-FreenectDriver. Ensure that OpenNI2
-# is compiled and running.
-
 OPENNI2PATH = /home/caiosba/Mestrado/OpenNI2
 
 # Includes
@@ -20,15 +16,16 @@ INCLUDES = $(EIGENINCPATH) $(FREENECTINCPATH) $(OPENNI2INCPATH) $(INCPATH) $(LOC
 LIBPATH = -L/usr/lib/
 LOCALLIBPATH = -L/usr/local/lib
 PANDALIBPATH = -L/usr/local/lib/panda3d
-OPENNI2LIBPATH = $(OPENNI2PATH)/Bin/x86-Release
-LIBPATHS = -L$(OPENNI2LIBPATH) $(PANDALIBPATH) $(LOCALLIBPATH) $(LIBPATH)
+OPENNI2LIBPATH = $(OPENNI2PATH)/Samples/Bin
+FREENECTLIBPATH = -L/usr/local/lib
+LIBPATHS = -L$(OPENNI2LIBPATH) $(FREENECTLIBPATH) $(PANDALIBPATH) $(LOCALLIBPATH) $(LIBPATH)
 
 # Libs
 
 PANDALIBS = -lp3framework -lpanda -lpandafx -lpandaexpress -lp3dtoolconfig -lp3dtool -lp3pystub
 OPENCVLIBS = -lopencv_core -lopencv_flann -lopencv_highgui -lopencv_imgproc -lopencv_gpu -lopencv_calib3d -lcv2
 OPENNI2LIBS = -lOpenNI2
-OTHERLIBS = -lpthread
+OTHERLIBS = -lpthread -lfreenect
 LIBS = $(OPENCVLIBS) $(PANDALIBS) $(OPENNI2LIBS) $(OTHERLIBS)
 
 CXX = g++-4.6
@@ -44,7 +41,7 @@ opencv2-openni : $(HEADERFILES) $(OBJECTFILES)
 .cpp.o: $*.h
 	@echo "Compiling: " $*
 	@($(CXX) -o $*.o -c $(CFLAGS) $(INCLUDES) $*.cpp)
-	
+
 clean:
 	rm -rf *.o src/*.o $(OPENNI2LIBPATH)/opencv2-openni
 
