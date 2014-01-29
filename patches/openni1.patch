@@ -1,0 +1,434 @@
+diff --git a/Makefile b/Makefile
+index e5e413a..962c9ad 100755
+--- a/Makefile
++++ b/Makefile
+@@ -2,32 +2,30 @@
+ # https://github.com/OpenKinect/libfreenect/tree/master/OpenNI2-FreenectDriver. Ensure that OpenNI2
+ # is compiled and running.
+ 
+-OPENNI2PATH = /home/caiosba/Mestrado/OpenNI2
+-
+ # Includes
+ 
+ INCPATH = -I/usr/include
+ LOCALINCPATH = -I/usr/local/include
+ PANDAINCPATH = -I/usr/local/include/panda3d
+ PYTHONINCPATH = -I/usr/include/python2.7
+-OPENNI2INCPATH = -I$(OPENNI2PATH)/Include
++OPENNIINCPATH = -I/usr/include/openni
+ FREENECTINCPATH = -I/usr/local/include/libfreenect
+ EIGENINCPATH = -I/usr/local/include/Eigen
+-INCLUDES = $(EIGENINCPATH) $(FREENECTINCPATH) $(OPENNI2INCPATH) $(INCPATH) $(LOCALINCPATH) $(PANDAINCPATH) $(PYTHONINCPATH) 
++INCLUDES = $(EIGENINCPATH) $(FREENECTINCPATH) $(OPENNIINCPATH) $(INCPATH) $(LOCALINCPATH) $(PANDAINCPATH) $(PYTHONINCPATH) 
+ 
+ # Lib paths
+ 
+ LIBPATH = -L/usr/lib/
+ LOCALLIBPATH = -L/usr/local/lib
+ PANDALIBPATH = -L/usr/local/lib/panda3d
+-OPENNI2LIBPATH = $(OPENNI2PATH)/Bin/x86-Release
+-LIBPATHS = -L$(OPENNI2LIBPATH) $(PANDALIBPATH) $(LOCALLIBPATH) $(LIBPATH)
++OPENNILIBPATH = -L/usr/lib/openni
++LIBPATHS = $(OPENNI2LIBPATH) $(PANDALIBPATH) $(LOCALLIBPATH) $(LIBPATH)
+ 
+ # Libs
+ 
+ PANDALIBS = -lp3framework -lpanda -lpandafx -lpandaexpress -lp3dtoolconfig -lp3dtool -lp3pystub
+ OPENCVLIBS = -lopencv_core -lopencv_flann -lopencv_highgui -lopencv_imgproc -lopencv_gpu -lopencv_calib3d -lcv2
+-OPENNI2LIBS = -lOpenNI2
++OPENNI2LIBS = -lOpenNI
+ OTHERLIBS = -lpthread
+ LIBS = $(OPENCVLIBS) $(PANDALIBS) $(OPENNI2LIBS) $(OTHERLIBS)
+ 
+@@ -39,13 +37,13 @@ SRC := $(foreach dir,src,$(wildcard $(dir)/*.cpp))
+ OBJECTFILES := $(patsubst src/%.cpp,src/%.o$,$(SRC))
+ 
+ opencv2-openni : $(HEADERFILES) $(OBJECTFILES)
+-	$(CXX) $(CFLAGS) $(OBJECTFILES) -o $(OPENNI2LIBPATH)/opencv2-openni $(LIBPATHS) $(LIBS) -Wl,-rpath ./
++	$(CXX) $(CFLAGS) $(OBJECTFILES) -o opencv2-openni $(LIBPATHS) $(LIBS) -Wl,-rpath ./
+ 
+ .cpp.o: $*.h
+ 	@echo "Compiling: " $*
+ 	@($(CXX) -o $*.o -c $(CFLAGS) $(INCLUDES) $*.cpp)
+ 	
+ clean:
+-	rm -rf *.o src/*.o $(OPENNI2LIBPATH)/opencv2-openni
++	rm -rf *.o src/*.o opencv2-openni
+ 
+ all: opencv2-openni
+diff --git a/run b/run
+index 54ff37e..a1556d5 100755
+--- a/run
++++ b/run
+@@ -1,10 +1,4 @@
+ #!/bin/bash
+-OPENNI2DIR=/home/caiosba/Mestrado/OpenNI2
+-wd="$OPENNI2DIR/Bin/x86-Release"
+ # make clean
+ make
+-rm -f "$wd/depth.cg" 2>/dev/null
+-rm -f "$wd/config.prc" 2>/dev/null
+-cp depth.cg config.prc $wd
+-cd $wd
+ LD_PRELOAD=/usr/local/lib/libopencv_core.so.2.4:/usr/local/lib/libopencv_flann.so.2.4:/usr/local/lib/libopencv_highgui.so.2.4:/usr/local/lib/libopencv_imgproc.so.2.4:/usr/local/lib/libopencv_gpu.so.2.4:/usr/local/lib/libopencv_calib3d.so.2.4:/usr/lib/libcv2.so:/usr/local/lib/panda3d/libp3framework.so.1.8:/usr/local/lib/panda3d/libpanda.so.1.8:/usr/local/lib/panda3d/libpandaexpress.so.1.8:/usr/local/lib/panda3d/libpandafx.so optirun ./opencv2-openni
+diff --git a/src/customDevice.h b/src/customDevice.h
+index f262e02..f24327d 100755
+--- a/src/customDevice.h
++++ b/src/customDevice.h
+@@ -3,62 +3,60 @@
+ 
+ #include "common.h"
+ #include "iostream"
+-#include "OpenNI.h"
++#include "XnOS.h"
++#include "XnCppWrapper.h"
+ #include "opencv2/opencv.hpp"
+ #include "opencv2/calib3d/calib3d.hpp"
+ 
+ using namespace std;
+-using namespace openni;
++using namespace xn;
+ using namespace cv;
+ 
+ class CustomDevice {
+ public:
+ 
+-  CustomDevice(DeviceInfo info, int id) {
++  CustomDevice(int id, Context context) {
+     this->id = id;
+-    name = info.getUri();
+-    device.open(info.getUri());
+-    openDepthStream();
+-    openColorStream();
+-
+-    streams[0] = &depth;
+-    streams[1] = &color;
++    name = "Kinect";
++    pTexMap = NULL;
++    nTexMapX = 0;
++    nTexMapY = 0;
++
++    printf("Here 2\n");
++	  depth.GetMetaData(depthMD);
++	  image.GetMetaData(imageMD);
++
++	  // Hybrid mode isn't supported in this sample
++	  if (imageMD.FullXRes() != depthMD.FullXRes() || imageMD.FullYRes() != depthMD.FullYRes()) {
++	  	printf("The device depth and image resolution must be equal!\n");
++	  }
++
++	  // RGB is the only image format supported.
++	  if (imageMD.PixelFormat() != XN_PIXEL_FORMAT_RGB24) {
++	  	printf("The device image format must be RGB24\n");
++	  }
++
++	  // Texture map init
++	  nTexMapX = (((unsigned short)(depthMD.FullXRes()-1) / 512) + 1) * 512;
++	  nTexMapY = (((unsigned short)(depthMD.FullYRes()-1) / 512) + 1) * 512;
++	  pTexMap = (XnRGB24Pixel*)malloc(nTexMapX * nTexMapY * sizeof(XnRGB24Pixel));
++
++	  nZRes = depthMD.ZRes();
++	  pDepthHist = (float*)malloc(nZRes * sizeof(float));
+   }
+ 
+   ~CustomDevice() {
+-    color.stop();
+-    color.destroy();
+-    depth.stop();
+-    depth.destroy();
+-    device.close();
+-  }
+-
+-  void openDepthStream() {
+-    if (device.getSensorInfo(SENSOR_DEPTH) != NULL) {
+-      Status status = depth.create(device, SENSOR_DEPTH);
+-      if (status != STATUS_OK) printError();
+-
+-      status = depth.start();
+-      if (status != STATUS_OK) printError();
+-    }
+-  }
+-
+-  void openColorStream() {
+-    if (device.getSensorInfo(SENSOR_COLOR) != NULL) {
+-      Status status = color.create(device, SENSOR_COLOR);
+-      if (status != STATUS_OK) printError();
+-
+-      status = color.start();
+-      if (status != STATUS_OK) printError();
+-    }
++    //FIXME: Stop streams
+   }
+ 
+   int readFrame() {
+-    int readyStream = -1;
+-    Status status = OpenNI::waitForAnyStream(streams, 2, &readyStream);
+-    if(readyStream == 0) depth.readFrame(&frame);
+-    else color.readFrame(&frame);
+-    return readyStream;
++	  XnStatus rc = XN_STATUS_OK;
++	  rc = context.WaitAnyUpdateAll();
++	  if (rc != XN_STATUS_OK) {
++	  	printf("Read failed: %s\n", xnGetStatusString(rc));
++	  }
++	  depth.GetMetaData(depthMD);
++	  image.GetMetaData(imageMD);
+   }
+  
+   /* FIXME: Maybe this section can be removed
+@@ -89,10 +87,16 @@ public:
+ 
+   int id;
+   string name;
+-  Device device;
+-  VideoStream depth, color;
+-  VideoFrameRef frame;
+-  VideoStream* streams[2];
++  Context context;
++  DepthGenerator depth;
++  ImageGenerator image;
++  DepthMetaData depthMD;
++  ImageMetaData imageMD;
++  float* pDepthHist;
++  XnRGB24Pixel* pTexMap;
++  unsigned int nTexMapX;
++  unsigned int nTexMapY;
++  XnDepthPixel nZRes;
+ };
+ 
+ #endif /* CUSTOMDEVICE_H */
+diff --git a/src/openicv.cpp b/src/openicv.cpp
+index 301e02d..ad6f1a5 100755
+--- a/src/openicv.cpp
++++ b/src/openicv.cpp
+@@ -2,23 +2,29 @@
+ 
+ #include "common.h"
+ #include "iostream"
+-#include "OpenNI.h"
++#include "XnOS.h"
++#include "XnCppWrapper.h"
+ #include "pointCloud.h"
+ #include "pandaViewer.h"
+ #include "customDevice.h"
+ #include "opencv2/opencv.hpp"
+ #include "opencv2/calib3d/calib3d.hpp"
+ 
++#define XML_PATH "config.xml"
++
+ int numframe = 0;
+ 
+ using namespace std;
+-using namespace openni;
++using namespace xn;
+ using namespace cv;
+ 
+ vector<CustomDevice*> devices;
+ 
+ extern PointCloud* cloud[2];
+ 
++Context context;
++ScriptNode scriptNode;
++
+ /**
+  * TODO: Verify if we should use the depth map to get the position (distance) and rotation,
+  * instead of using only RGB and chessboard on calibration
+@@ -80,83 +86,75 @@ void trackCameraPosition(int numCornersHor, int numCornersVer, CustomDevice* dev
+ 
+   Mat imageDistorted, image, grayImage, imageDepth;
+ 
+-  const VideoFrameRef& frame = device->frame;
+-  char key = 0;
+-  //FIXME while (key != 27)
+-  {
+-    if (DEBUG) cout << "Reading frame..." << endl;
+-    //FIXME readKinectFrame();
+-
+-    // Only process RGB frames
+-    if (frame.getVideoMode().getPixelFormat() == PIXEL_FORMAT_RGB888) {
+-
+-      //FIXME imageDistorted = Mat(frame.getHeight(), frame.getWidth(), CV_8UC3, (void*)frame.getData());
+-      //FIXME undistort(imageDistorted, image, intrinsic, distCoeffs);
+-      image = Mat(frame.getHeight(), frame.getWidth(), CV_8UC3, (void*)frame.getData());
+-      cvtColor(image, image, CV_BGR2RGB);
+-      cvtColor(image, grayImage, CV_RGB2GRAY);
+-
+-      //FIXME set_rgb_data(image.cols, image.rows, (void*)image.data, numframe);
+-      cloud[device->id]->updateColor(image.data);
+-
+-      bool found = findChessboardCorners(grayImage, boardSize, corners,  (CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS));
+-      
+-      if (found) {
+-        // cornerSubPix(grayImage, corners, Size(11, 11), Size(-1, -1), TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
+-        drawChessboardCorners(image, boardSize, corners, found);
+-        findMatrix(boardReference, corners, intrinsic, distCoeffs, device->id);
+-      }
+-
+-      imshow("RGB Kinect " + device->name, image);
+-      //FIXME imshow("Gray Image", grayImage);
+-
+-    }
+-    
+-    else if ((frame.getVideoMode().getPixelFormat() == PIXEL_FORMAT_DEPTH_100_UM) ||
+-            (frame.getVideoMode().getPixelFormat() == PIXEL_FORMAT_DEPTH_1_MM) ) {
+-      //FIXME imageDistorted = Mat(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*)frame.getData());
+-      //FIXME undistort(imageDistorted, imageDepth, intrinsic, distCoeffs);
+-      imageDepth = Mat(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*)frame.getData());
+-      Mat imgDEP(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*) frame.getData());
+-
+-      // Convert and display
+-      imgDEP.convertTo(imgDEP, CV_8U, 255.0 / 4096.0);
+-      imshow("Image Depth " + device->name, imgDEP);
+-      //FIXME get3DMapping();
+-      //FIXME set_depth_data(imageDepth.cols, imageDepth.rows, (void*)imageDepth.data, numframe);
+-      if (DEBUG) cout << "updateDepth" << endl;
+-      cloud[device->id]->updateDepth(imageDepth.data);
+-    }
++	const XnDepthPixel* pDepth = device->depthMD.Data();
++	xnOSMemSet(device->pDepthHist, 0, device->nZRes*sizeof(float));
++	unsigned int nNumberOfPoints = 0;
++	for (XnUInt y = 0; y < device->depthMD.YRes(); ++y) {
++		for (XnUInt x = 0; x < device->depthMD.XRes(); ++x, ++pDepth) {
++			if (*pDepth != 0) {
++				device->pDepthHist[*pDepth]++;
++				nNumberOfPoints++;
++			}
++		}
++	}
++	for (int nIndex=1; nIndex<device->nZRes; nIndex++) {
++		device->pDepthHist[nIndex] += device->pDepthHist[nIndex-1];
++	}
++	if (nNumberOfPoints) {
++		for (int nIndex=1; nIndex<device->nZRes; nIndex++) {
++			device->pDepthHist[nIndex] = (unsigned int)(256 * (1.0f - (device->pDepthHist[nIndex] / nNumberOfPoints)));
++		}
++	}
++	xnOSMemSet(device->pTexMap, 0, device->nTexMapX*device->nTexMapY*sizeof(XnRGB24Pixel));
++
++  // RGB frame first
++  image = Mat(device->nTexMapY, device->nTexMapX, CV_8UC3, device->pTexMap);
++  cvtColor(image, image, CV_BGR2RGB);
++  imshow("RGB Kinect " + device->name, image);
++  /*
++  cvtColor(image, grayImage, CV_RGB2GRAY);
++
++  cloud[device->id]->updateColor(image.data);
++
++  bool found = findChessboardCorners(grayImage, boardSize, corners,  (CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS));
++  
++  if (found) {
++    drawChessboardCorners(image, boardSize, corners, found);
++    findMatrix(boardReference, corners, intrinsic, distCoeffs, device->id);
++  }
+ 
+-    key = cvWaitKey(10);
+-    if (key == 'a') {
+-      if (DEBUG) cout << "Space" << endl;
+-      numframe++;
+-    }
++  imshow("RGB Kinect " + device->name, image);
++
++  
++  else if ((frame.getVideoMode().getPixelFormat() == PIXEL_FORMAT_DEPTH_100_UM) ||
++          (frame.getVideoMode().getPixelFormat() == PIXEL_FORMAT_DEPTH_1_MM) ) {
++    //FIXME imageDistorted = Mat(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*)frame.getData());
++    //FIXME undistort(imageDistorted, imageDepth, intrinsic, distCoeffs);
++    imageDepth = Mat(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*)frame.getData());
++    Mat imgDEP(frame.getHeight(), frame.getWidth(), CV_16UC1, (void*) frame.getData());
++
++    // Convert and display
++    imgDEP.convertTo(imgDEP, CV_8U, 255.0 / 4096.0);
++    imshow("Image Depth " + device->name, imgDEP);
++    //FIXME get3DMapping();
++    //FIXME set_depth_data(imageDepth.cols, imageDepth.rows, (void*)imageDepth.data, numframe);
++    if (DEBUG) cout << "updateDepth" << endl;
++    cloud[device->id]->updateDepth(imageDepth.data);
+   }
++  */
+ }
+ 
+-Status initOpenNI() {
++XnStatus initOpenNI() {
+   // Initialize OpenNI
+-  Status rc = OpenNI::initialize();
+-  if (rc != STATUS_OK) {
+-    if (DEBUG) cout << "Initialize failed" << OpenNI::getExtendedError();
++  XnStatus rc;
++	EnumerationErrors errors;
++	rc = context.InitFromXmlFile(XML_PATH, scriptNode, &errors);
++  if (rc != XN_STATUS_OK) {
++    if (DEBUG) cout << "Initialize failed" << xnGetStatusString(rc);
+     return rc;
+   }
+ 
+-  // Verify and open Kinects
+-  Array<DeviceInfo> devicesInfo;
+-  OpenNI::enumerateDevices(&devicesInfo);
+-
+-  if (DEBUG) cout << devicesInfo.getSize() << " Kinect(s) found" << endl;
+-  if (devicesInfo.getSize() == 0) {
+-    if (DEBUG) cout << "Fatal: No Kinect found!" << endl;
+-    exit;
+-  }
+-
+-  for (int i = 0; i < devicesInfo.getSize(); i++) {
+-    devices.push_back(new CustomDevice(devicesInfo[i], i));
+-  }
++  devices.push_back(new CustomDevice(1, context));
+ 
+   // No thread
+   while (true) {
+@@ -164,10 +162,8 @@ Status initOpenNI() {
+     //FIXME devices[0]->mainLoop();
+     //FIXME devices[1]->mainLoop();
+     
+-    for (int i = 0; i < devicesInfo.getSize(); i++) {
+-      devices[i]->readFrame();
+-      trackCameraPosition(9, 6, devices[i]);
+-    }
++    devices[0]->readFrame();
++    trackCameraPosition(9, 6, devices[0]);
+   }
+   return rc;
+ }
+@@ -176,11 +172,11 @@ int main(int argc, char** argv) {
+   // Create a panda thread for visualization
+   pthread_t thread_id;
+   int param;
+-  pthread_create(&thread_id, NULL, panda_thread, &param);
++  // pthread_create(&thread_id, NULL, panda_thread, &param);
+ 
+   // Initialize OpenNI
+-  Status rc = initOpenNI();
+-  if (rc != STATUS_OK) {
++  XnStatus rc = initOpenNI();
++  if (rc != XN_STATUS_OK) {
+     if (DEBUG) cout << "Error while loading OpenNI. Exiting..." << endl;
+     return 1;
+   }
+@@ -189,6 +185,5 @@ int main(int argc, char** argv) {
+ 
+   //FIXME trackCameraPosition(9, 6);
+ 
+-  OpenNI::shutdown();
+   return 0;
+ }
+diff --git a/src/utils.cpp b/src/utils.cpp
+index 036c67e..de6aa96 100755
+--- a/src/utils.cpp
++++ b/src/utils.cpp
+@@ -1,11 +1,12 @@
+ #include "common.h"
+ #include "iostream"
+-#include "OpenNI.h"
++#include "XnOS.h"
++#include "XnCppWrapper.h"
+ #include "opencv2/opencv.hpp"
+ #include "opencv2/calib3d/calib3d.hpp"
+ 
+ using namespace std;
+-using namespace openni;
++using namespace xn;
+ using namespace cv;
+ 
+ void showChessboard(Mat& image) {
